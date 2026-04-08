@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>견적함</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, sans-serif;
+    background: #f2f2f7;
+    overflow: hidden;
+  }
+
+  /* 모바일: 풀스크린 앱처럼 */
+  .app {
+    width: 100%; height: 100%;
+    background: #f2f2f7;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 데스크톱: 폰 프레임 */
+  @media (min-width: 500px) {
+    body {
+      background: #111;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .app {
+      width: 375px; height: 812px;
+      border-radius: 40px; border: 2px solid #444;
+      box-shadow: 0 8px 60px rgba(0,0,0,0.5);
+      padding-top: 48px;
+    }
+    .app::before {
+      content: ''; position: absolute; top: 16px; left: 50%;
+      transform: translateX(-50%); width: 100px; height: 28px;
+      background: #1a1a1a; border-radius: 14px; z-index: 10;
+    }
+  }
+
+  .app-scroll {
+    height: 100%; overflow-y: auto; background: #f2f2f7;
+    padding-bottom: 110px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-scroll::-webkit-scrollbar { display: none; }
+
+  /* Status bar (모바일에서는 실제 상태바가 있으므로 숨김) */
+  .status-bar {
+    display: none;
+    background: #fff; padding: 8px 16px;
+    font-size: 12px; color: #333; font-weight: 600;
+    justify-content: space-between;
+  }
+  @media (min-width: 500px) {
+    .status-bar { display: flex; }
+  }
+
+  .header {
+    background: #fff; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 5;
+  }
+  .header .back { font-size: 20px; color: #333; cursor: pointer; }
+  .header .title { font-size: 17px; font-weight: 600; }
+  .header .home { font-size: 18px; color: #333; }
+  .car-info { background: #fff; padding: 12px 16px; border-bottom: 1px solid #eee; }
+  .car-info .car-name { font-size: 13px; color: #666; }
+  .car-info .location-row { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .car-info .location { font-size: 15px; color: #007AFF; font-weight: 500; }
+  .car-info .req-btn { font-size: 13px; color: #333; border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; background: #fff; }
+  .estimate-card {
+    background: #fff; margin: 8px 12px; border-radius: 12px;
+    padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: opacity 0.4s;
+  }
+  .shop-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .shop-img { width: 80px; height: 60px; background: #e8e8e8; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; }
+  .shop-info .shop-name { font-size: 15px; font-weight: 600; }
+  .shop-info .shop-loc { font-size: 12px; color: #999; margin-top: 2px; }
+  .shop-info .shop-rating { font-size: 12px; color: #666; margin-top: 2px; }
+  .star { color: #FFD700; }
+  .divider { height: 1px; background: #f0f0f0; margin: 0 0 12px; }
+  .price-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .price-row .type { display: flex; align-items: center; gap: 6px; }
+  .price-row .type .icon { width: 24px; height: 24px; background: #e8f4fd; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #007AFF; }
+  .price-row .type .label { font-size: 14px; font-weight: 500; }
+  .price-row .amount { text-align: right; }
+  .price-row .amount .price { font-size: 16px; font-weight: 700; color: #27ae60; }
+  .price-row .amount .delivery { font-size: 12px; color: #999; margin-top: 2px; }
+  .tags { display: flex; gap: 6px; margin-top: 10px; }
+  .tag { font-size: 11px; color: #666; border: 1px solid #e0e0e0; border-radius: 14px; padding: 3px 10px; background: #fafafa; }
+  .faq-section { background: #f8f8f8; margin: 8px 12px; border-radius: 12px; padding: 14px 16px; }
+  .faq-section .faq-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .faq-tags { display: flex; gap: 8px; }
+  .faq-tag { font-size: 13px; color: #333; border: 1px solid #ddd; border-radius: 6px; padding: 6px 12px; background: #fff; }
+  .add-req { background: #f0f4ff; margin: 8px 12px 16px; border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .add-req .text { font-size: 13px; color: #333; line-height: 1.4; }
+  .add-req .btn { background: #4270ED; color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 600; }
+
+  /* Dimmed overlay */
+  .dimmed {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3); z-index: 19;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .dimmed.show { opacity: 1; pointer-events: auto; }
+
+  /* Bottom Sheet */
+  .bottom-sheet {
+    position: absolute; left: 0; right: 0; z-index: 20;
+    background: #fff; border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    bottom: 0; max-height: 90%; overflow: hidden;
+  }
+  .bottom-sheet.state-peek { transform: translateY(0); }
+  .bottom-sheet.state-hidden { transform: translateY(100%); }
+  .bs-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 8px auto 0; }
+
+  /* Peek */
+  .bs-peek-content { padding: 12px 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .bs-peek-left { flex: 1; }
+  .bs-peek-title { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.4; }
+  .bs-peek-btn {
+    background: #2c3e50; color: #fff; border: none; border-radius: 10px;
+    padding: 12px 16px; font-size: 13px; font-weight: 600; white-space: nowrap;
+    cursor: pointer; transition: background 0.2s; -webkit-tap-highlight-color: transparent;
+  }
+  .bs-peek-btn:active { background: #1a252f; }
+
+  /* Expanded */
+  .bs-expanded-header { padding: 12px 16px 0; display: flex; justify-content: flex-end; }
+  .bs-close {
+    font-size: 20px; color: #999; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; background: #f0f0f0; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bs-close:active { background: #ddd; }
+  .bs-expanded-body { padding: 4px 20px 28px; }
+  .bs-repair-cost { font-size: 15px; color: #666; margin-bottom: 4px; }
+  .bs-repair-cost strong { color: #1a1a1a; font-size: 17px; }
+  .bs-suggest { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 20px; }
+  .bs-price-card {
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px;
+    padding: 20px; text-align: center; margin-bottom: 16px;
+  }
+  .bs-price-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .bs-price-range { font-size: 28px; font-weight: 700; color: #16a34a; letter-spacing: -0.5px; }
+  .bs-price-source { font-size: 10px; color: #999; margin-top: 6px; }
+  .bs-extra { font-size: 13px; color: #555; margin-bottom: 16px; padding: 10px 14px; background: #f8f8f8; border-radius: 8px; }
+  .bs-cta {
+    display: block; width: 100%; padding: 15px; background: #2c3e50; color: #fff;
+    border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
+    text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .bs-cta:active { background: #1a252f; }
+  .bs-cta-sub { text-align: center; font-size: 12px; color: #666; margin-top: 8px; font-weight: 500; }
+  .bs-disclaimer { text-align: center; font-size: 10px; color: #bbb; margin-top: 10px; line-height: 1.4; }
+  .bs-dismiss {
+    text-align: center; font-size: 13px; color: #999; margin-top: 14px;
+    text-decoration: underline; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Form */
+  .bs-form-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+  .bs-form-sub { font-size: 12px; color: #999; margin-bottom: 16px; }
+  .bs-form-summary {
+    background: #f0fdf4; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .bs-form-summary .left { font-size: 11px; color: #666; }
+  .bs-form-summary .right { font-size: 16px; font-weight: 700; color: #16a34a; }
+  .bs-form-group { margin-bottom: 12px; }
+  .bs-form-group label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500; }
+  .bs-form-group input, .bs-form-group select {
+    width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px;
+    font-size: 15px; background: #fafafa; outline: none; font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+  }
+  .bs-form-group select {
+    background: #fafafa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 14px center;
+    padding-right: 36px;
+  }
+  .bs-form-group input:focus, .bs-form-group select:focus { border-color: #2c3e50; background-color: #fff; }
+  .bs-form-submit {
+    display: block; width: 100%; padding: 15px; background: #2c3e50; color: #fff;
+    border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
+    text-align: center; margin-top: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .bs-form-submit:active { background: #1a252f; }
+  .bs-form-submit:disabled { background: #ccc; cursor: not-allowed; }
+  .bs-form-note { text-align: center; font-size: 10px; color: #bbb; margin-top: 8px; line-height: 1.4; }
+
+  /* Success */
+  .bs-success { padding: 24px 16px; text-align: center; }
+  .bs-success-icon { font-size: 40px; margin-bottom: 10px; }
+  .bs-success-title { font-size: 18px; font-weight: 700; color: #16a34a; margin-bottom: 8px; }
+  .bs-success-desc { font-size: 14px; color: #555; line-height: 1.6; }
+  .bs-success-sub { font-size: 12px; color: #999; margin-top: 12px; line-height: 1.5; }
+  .bs-success-done {
+    display: block; width: 100%; padding: 15px; background: #f0f0f0; color: #333;
+    border: none; border-radius: 12px; font-size: 15px; font-weight: 600;
+    text-align: center; margin-top: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .bs-success-done:active { background: #ddd; }
+
+  .bs-view { display: none; }
+  .bs-view.active { display: block; }
+
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes checkPop { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+  .animate-slide-up { animation: slideUp 0.3s ease-out; }
+  .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+  .animate-check { animation: checkPop 0.4s ease-out; }
+
+  /* Safe area (iPhone notch) */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .header { padding-top: calc(12px + env(safe-area-inset-top)); }
+    .bottom-sheet { padding-bottom: env(safe-area-inset-bottom); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app-scroll" id="app-scroll">
+    <div class="header"><span class="back">&larr;</span><span class="title">견적함</span><span class="home">&#8962;</span></div>
+    <div class="car-info">
+      <div class="car-name">메르세데스벤츠 E300 &middot; 12가3456</div>
+      <div class="location-row"><span class="location">서울 송파구 잠실동 &#x21bb;</span><button class="req-btn">요청 내역</button></div>
+    </div>
+
+    <div class="estimate-card" id="card-1">
+      <div class="shop-row"><div class="shop-img">업체 사진</div><div class="shop-info"><div class="shop-name">카프라이즈</div><div class="shop-loc">서울 강남구</div><div class="shop-rating"><span class="star">&#9733;</span> 4.9 (10) &middot; 수리사례 (999+)</div></div></div>
+      <div class="divider"></div>
+      <div class="price-row"><div class="type"><div class="icon">&#9881;</div><span class="label">비보험 수리</span></div><div class="amount"><div class="price">348만원</div><div class="delivery">입고 +2일</div></div></div>
+      <div class="tags"><span class="tag">픽업</span><span class="tag">딜리버리</span></div>
+    </div>
+
+    <div class="estimate-card" id="card-2">
+      <div class="shop-row"><div class="shop-img">업체 사진</div><div class="shop-info"><div class="shop-name">가양현대자동차공업사</div><div class="shop-loc">서울 강서구</div><div class="shop-rating"><span class="star">&#9733;</span> 4.9 (71)</div></div></div>
+      <div class="divider"></div>
+      <div class="price-row"><div class="type"><div class="icon">&#9881;</div><span class="label">비보험 수리</span></div><div class="amount"><div class="price">290만원</div><div class="delivery">입고 당일</div></div></div>
+      <div class="tags"><span class="tag">픽업</span></div>
+    </div>
+
+    <div class="estimate-card" id="card-3">
+      <div class="shop-row"><div class="shop-img">업체 사진</div><div class="shop-info"><div class="shop-name">카닥테크센터 아이모터스랩</div><div class="shop-loc">경기 용인시 수지구</div><div class="shop-rating"><span class="star">&#9733;</span> 5.0 (136) &middot; 수리사례 (999+)</div></div></div>
+      <div class="divider"></div>
+      <div class="price-row"><div class="type"><div class="icon">&#9881;</div><span class="label">비보험 수리</span></div><div class="amount"><div class="price">320만원</div><div class="delivery">입고 +2일</div></div></div>
+      <div class="tags"><span class="tag">픽업</span><span class="tag">딜리버리</span><span class="tag">손세차</span></div>
+    </div>
+
+    <div class="estimate-card" id="card-4">
+      <div class="shop-row"><div class="shop-img">업체 사진</div><div class="shop-info"><div class="shop-name">정민자동차공업사</div><div class="shop-loc">서울 송파구</div><div class="shop-rating"><span class="star">&#9733;</span> 4.9 (12)</div></div></div>
+      <div class="divider"></div>
+      <div class="price-row"><div class="type"><div class="icon">&#9881;</div><span class="label">비보험 수리</span></div><div class="amount"><div class="price">310만원</div><div class="delivery">입고 +1일</div></div></div>
+      <div class="tags"><span class="tag">픽업</span></div>
+    </div>
+
+    <div class="faq-section"><div class="faq-title">&#x2753; 궁금하실 내용을 모아 봤어요</div><div class="faq-tags"><span class="faq-tag">자주 묻는 질문</span><span class="faq-tag">A/S 보장 안내</span></div></div>
+    <div class="add-req"><div class="text">견적서를 더 받고 싶다면<br>추가 요청으로 가능해요.</div><button class="btn">추가 요청</button></div>
+  </div>
+
+  <div class="dimmed" id="dimmed"></div>
+
+  <div class="bottom-sheet state-peek" id="bottom-sheet">
+    <div class="bs-handle"></div>
+
+    <div class="bs-view active" id="view-peek">
+      <div class="bs-peek-content">
+        <div class="bs-peek-left">
+          <div class="bs-peek-title">수리비 348만원 &mdash; 매입 시세도 확인해보세요</div>
+        </div>
+        <button class="bs-peek-btn" id="btn-expand">확인하기</button>
+      </div>
+    </div>
+
+    <div class="bs-view" id="view-expanded">
+      <div class="bs-expanded-header"><div class="bs-close" id="btn-close-expanded">&times;</div></div>
+      <div class="bs-expanded-body">
+        <div class="bs-repair-cost">수리비가 <strong>348만원</strong>이에요</div>
+        <div class="bs-suggest">매각을 한번 고려해보세요</div>
+        <div class="bs-price-card">
+          <div class="bs-price-label">예상 매입 시세</div>
+          <div class="bs-price-range">2,400 ~ 2,800만원</div>
+          <div class="bs-price-source">E300 2019년식 &middot; KB차차차 기준 &middot; 현재 상태 반영</div>
+        </div>
+        <div class="bs-extra">&#128663; 매각 후 대차 안내도 가능합니다</div>
+        <button class="bs-cta" id="btn-consult">무료 매입 상담받기</button>
+        <div class="bs-cta-sub">카닥 중고차 매입팀장이 직접 연락드려요</div>
+        <div class="bs-disclaimer">주행거리에 따라 실제 매입가는 달라질 수 있습니다</div>
+        <div class="bs-dismiss" id="btn-dismiss">괜찮아요, 닫기</div>
+      </div>
+    </div>
+
+    <div class="bs-view" id="view-form">
+      <div class="bs-expanded-header"><div class="bs-close" id="btn-close-form">&times;</div></div>
+      <div class="bs-expanded-body">
+        <div class="bs-form-title">매입 상담 신청</div>
+        <div class="bs-form-sub">카카오톡으로 먼저 안내드리고, 원하시면 전화 상담도 가능해요</div>
+        <div class="bs-form-summary">
+          <div class="left">예상 매입 시세</div>
+          <div class="right">2,400 ~ 2,800만원</div>
+        </div>
+        <div class="bs-form-group">
+          <label>이름 <span style="font-weight: 400; color: #bbb;">(선택)</span></label>
+          <input type="text" id="input-name" placeholder="홍길동" />
+        </div>
+        <div class="bs-form-group">
+          <label>연락처</label>
+          <input type="tel" id="input-phone" placeholder="010-1234-5678" value="010-9876-5432" />
+        </div>
+        <div class="bs-form-group">
+          <label>주행거리</label>
+          <select id="input-mileage">
+            <option value="">선택해주세요</option>
+            <option>3만km 이하</option>
+            <option>3만~5만km</option>
+            <option>5만~8만km</option>
+            <option>8만~10만km</option>
+            <option>10만~15만km</option>
+            <option>15만km 이상</option>
+          </select>
+        </div>
+        <div class="bs-form-group">
+          <label>선호 연락 시간</label>
+          <select id="input-time">
+            <option value="">선택해주세요</option>
+            <option>오전 (9시-12시)</option>
+            <option>오후 (12시-18시)</option>
+            <option>저녁 (18시-21시)</option>
+            <option>언제든 괜찮아요</option>
+          </select>
+        </div>
+        <button class="bs-form-submit" id="btn-submit" disabled>무료 상담 신청하기</button>
+        <div class="bs-form-note">개인정보는 매각 상담 목적으로만 사용되며,<br>상담 종료 후 즉시 파기됩니다.</div>
+      </div>
+    </div>
+
+    <div class="bs-view" id="view-success">
+      <div class="bs-expanded-body">
+        <div class="bs-success">
+          <div class="bs-success-icon" id="success-icon">&#x2705;</div>
+          <div class="bs-success-title">신청이 완료되었습니다</div>
+          <div class="bs-success-desc">
+            카닥 중고차 매입팀장이<br><strong>영업일 1일 이내</strong>에 직접 연락드리겠습니다.
+          </div>
+          <div class="bs-success-sub">
+            카카오톡으로 먼저 안내드려요.<br>
+            원하시면 전화 상담도 가능합니다.<br>
+            차량 사진을 미리 준비해두시면<br>더 빠른 상담이 가능합니다.
+          </div>
+          <button class="bs-success-done" id="btn-done">견적함으로 돌아가기</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bs-view" id="view-completed">
+      <div class="bs-peek-content" style="background: #f0fdf4;">
+        <div class="bs-peek-left">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 16px;">&#x2705;</span>
+            <div class="bs-peek-title" style="font-size: 13px; color: #16a34a;">매입 상담 신청 완료</div>
+          </div>
+          <div style="font-size: 11px; color: #666; margin-top: 4px;">영업일 1일 이내 매입팀장이 연락드려요</div>
+        </div>
+        <button class="bs-peek-btn" id="btn-completed-detail" style="background: #16a34a; font-size: 12px; padding: 10px 14px;">신청 내역</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const bs = document.getElementById('bottom-sheet');
+const dimmed = document.getElementById('dimmed');
+const cards = ['card-1','card-2','card-3','card-4'].map(id => document.getElementById(id));
+const views = {
+  peek: document.getElementById('view-peek'),
+  expanded: document.getElementById('view-expanded'),
+  form: document.getElementById('view-form'),
+  success: document.getElementById('view-success'),
+  completed: document.getElementById('view-completed'),
+};
+
+let currentState = 0;
+
+function showView(name) {
+  Object.values(views).forEach(v => v.classList.remove('active'));
+  views[name].classList.add('active');
+}
+
+function setCardOpacity(state) {
+  const opacities = {
+    0: [1, 1, 1, 1],
+    1: [0.4, 0.3, 0.2, 0.1],
+    2: [0.3, 0.2, 0.1, 0.05],
+  };
+  const o = opacities[Math.min(state, 2)];
+  cards.forEach((c, i) => c.style.opacity = o[i]);
+}
+
+function goToState(state) {
+  currentState = state;
+  switch (state) {
+    case 0:
+      dimmed.classList.remove('show');
+      bs.className = 'bottom-sheet state-peek';
+      showView('peek');
+      setCardOpacity(0);
+      break;
+    case 1:
+      dimmed.classList.add('show');
+      bs.className = 'bottom-sheet';
+      bs.style.transform = 'translateY(0)';
+      showView('expanded');
+      setCardOpacity(1);
+      views.expanded.querySelector('.bs-expanded-body').classList.add('animate-fade-in');
+      setTimeout(() => views.expanded.querySelector('.bs-expanded-body').classList.remove('animate-fade-in'), 300);
+      break;
+    case 2:
+      dimmed.classList.add('show');
+      bs.className = 'bottom-sheet';
+      bs.style.transform = 'translateY(0)';
+      showView('form');
+      setCardOpacity(2);
+      views.form.querySelector('.bs-expanded-body').classList.add('animate-slide-up');
+      setTimeout(() => views.form.querySelector('.bs-expanded-body').classList.remove('animate-slide-up'), 300);
+      break;
+    case 3:
+      dimmed.classList.add('show');
+      bs.className = 'bottom-sheet';
+      bs.style.transform = 'translateY(0)';
+      showView('success');
+      setCardOpacity(2);
+      const icon = document.getElementById('success-icon');
+      icon.classList.add('animate-check');
+      setTimeout(() => icon.classList.remove('animate-check'), 400);
+      break;
+    case 4:
+      dimmed.classList.remove('show');
+      bs.className = 'bottom-sheet state-peek';
+      showView('completed');
+      setCardOpacity(0);
+      break;
+  }
+}
+
+function closeToPeek() { goToState(0); }
+
+function reset() {
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-phone').value = '010-9876-5432';
+  document.getElementById('input-mileage').value = '';
+  document.getElementById('input-time').value = '';
+  document.getElementById('btn-submit').disabled = true;
+  goToState(0);
+}
+
+function validateForm() {
+  const phone = document.getElementById('input-phone').value.trim();
+  const mileage = document.getElementById('input-mileage').value;
+  const time = document.getElementById('input-time').value;
+  document.getElementById('btn-submit').disabled = !(phone && mileage && time);
+}
+
+document.getElementById('btn-expand').addEventListener('click', () => goToState(1));
+document.getElementById('btn-consult').addEventListener('click', () => goToState(2));
+document.getElementById('btn-submit').addEventListener('click', (e) => { e.preventDefault(); goToState(3); });
+document.getElementById('btn-done').addEventListener('click', () => goToState(4));
+document.getElementById('btn-completed-detail').addEventListener('click', () => goToState(3));
+document.getElementById('btn-close-expanded').addEventListener('click', closeToPeek);
+document.getElementById('btn-close-form').addEventListener('click', closeToPeek);
+document.getElementById('btn-dismiss').addEventListener('click', closeToPeek);
+dimmed.addEventListener('click', closeToPeek);
+
+document.getElementById('input-name').addEventListener('input', validateForm);
+document.getElementById('input-phone').addEventListener('input', validateForm);
+document.getElementById('input-mileage').addEventListener('change', validateForm);
+document.getElementById('input-time').addEventListener('change', validateForm);
+
+document.getElementById('input-phone').addEventListener('input', function() {
+  let v = this.value.replace(/[^0-9]/g, '');
+  if (v.length > 3 && v.length <= 7) v = v.slice(0,3) + '-' + v.slice(3);
+  else if (v.length > 7) v = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+  this.value = v;
+  validateForm();
+});
+
+// Double-tap to reset (시연 중 처음부터 하고 싶을 때)
+let lastTap = 0;
+document.querySelector('.header').addEventListener('click', () => {
+  const now = Date.now();
+  if (now - lastTap < 300) reset();
+  lastTap = now;
+});
+</script>
+
+</body>
+</html>
